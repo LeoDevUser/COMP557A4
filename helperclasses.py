@@ -18,8 +18,8 @@ def getRayPoint(ray: Ray, t: float) -> tm.vec3:
 def changeRayFrame(ray: Ray, M: tm.mat4) -> Ray:
     # TODO: Objective 4: Ray and Geometry Transformations
    
-    d_local = M @ tm.vec4(ray.direction,1.0)
-    o_local = M @ tm.vec4(ray.origin,0.0)
+    d_local = M @ tm.vec4(ray.direction,0.0)
+    o_local = M @ tm.vec4(ray.origin,1.0)
     new_ray = Ray(o_local.xyz, tm.normalize(d_local.xyz))
 
     return new_ray 
