@@ -29,13 +29,48 @@ def intersectSphere(sphere: Sphere, ray: Ray, t_min: float, t_max: float) -> Int
         the origin, the M and M_inv members of the Sphere class must be used to 
         transform the ray into the sphere's local frame for intersection, and
         likewise used to transform the resulting intersection data back to world space
-        (TODO: See Objective ?).
     '''
 
     hit = Intersection() # default is no intersection (is_hit = False)
 
     # TODO: Objective 2: Implement ray-sphere intersection
+    ray_local = changeRayFrame(ray, sphere.M_inv)
 
+    p = ray_local.origin
+    d = ray_local.direction
+    r = sphere.radius
+
+    #a(dd) + b(pd) + c(pp -rr)
+    a = tm.dot(d, d)
+    b = 2.0 * tm.dot(p, d)
+    c = tm.dot(p, p) - r * r
+
+    discriminant = b * b - 4.0 * a * c
+
+    #compute both solutions
+    sqrt_disc = ti.sqrt(ti.max(0.0, discriminant))
+    t1 = (-b - sqrt_disc) / (2.0 * a)
+    t2 = (-b + sqrt_disc) / (2.0 * a)
+
+    #check validity of t1
+    t1_valid = (t_min < t1) and (t1 < t_max) and (discriminant >= 0.0)
+    #check validity of t2
+    t2_valid = (t_min < t2) and (t2 < t_max) and (discriminant >= 0.0)
+
+    #prefer t1 if valid, otherwise use t2
+    t = ti.select(t1_valid, t1, t2)
+    hit.is_hit = t1_valid or t2_valid
+
+    #compute intersection only if hit
+    if hit.is_hit:
+        point_local = getRayPoint(ray_local, t)
+        normal_local = tm.normalize(point_local)
+
+        hit.position = (sphere.M @ tm.vec4(point_local.x, point_local.y, point_local.z, 1.0)).xyz
+        normal_world_vec4 = sphere.M_inv @ tm.vec4(normal_local.x, normal_local.y, normal_local.z, 0.0)
+        hit.normal = tm.normalize(tm.vec3(normal_world_vec4.x, normal_world_vec4.y, normal_world_vec4.z))
+        hit.t = tm.length(hit.position - ray.origin)
+        hit.mat = sphere.material
 
     return hit
 
