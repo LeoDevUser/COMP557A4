@@ -110,9 +110,41 @@ def intersectPlane(plane: Plane, ray: Ray, t_min: float, t_max: float) -> Inters
 
     # TODO: Objective 5: Implement ray-plane intersection
 
+    ray_local = changeRayFrame(ray, plane.M_inv)
 
-    return hit
+    p = ray_local.origin
+    d = ray_local.direction
+    n = plane.normal
 
+    #t = -(n · o) / (n · d)
+    denominator = tm.dot(n, d)
+
+    #check if ray is parallel to plane
+    t = 0.0
+    if ti.abs(denominator) < 1e-6:
+        hit.is_hit = False
+    else:
+        t = (-1.0 * (tm.dot(n, p))) / denominator
+        hit.is_hit = t > 0 and t_min < t and t_max > t
+
+    if hit.is_hit:
+        point_local = getRayPoint(ray_local, t)
+        hit.position = point_local
+        hit.normal = plane.normal
+        hit.t = tm.length(getRayPoint(ray, t) - ray.origin)
+        
+        #checkerboard pattern
+        if plane.two_materials:
+            square_x = ti.cast(ti.floor(point_local.x), ti.i32)
+            square_z = ti.cast(ti.floor(point_local.z), ti.i32)
+            if (square_x + square_z) % 2 == 0:
+                hit.mat = plane.material1
+            else:
+                hit.mat = plane.material2
+        else:
+            hit.mat = plane.material1
+
+    return changeIntersectFrame(hit, plane.M, plane.M_inv)
 
 @ti.dataclass
 class AABox:
