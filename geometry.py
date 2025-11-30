@@ -66,10 +66,9 @@ def intersectSphere(sphere: Sphere, ray: Ray, t_min: float, t_max: float) -> Int
         point_local = getRayPoint(ray_local, t)
         normal_local = tm.normalize(point_local)
 
-        hit.position = (sphere.M @ tm.vec4(point_local.x, point_local.y, point_local.z, 1.0)).xyz
-        normal_world_vec4 = sphere.M_inv.transpose() @ tm.vec4(normal_local.x, normal_local.y, normal_local.z, 0.0)
-        hit.normal = tm.normalize(tm.vec3(normal_world_vec4.x, normal_world_vec4.y, normal_world_vec4.z))
-        hit.t = tm.length(hit.position - ray.origin)
+        hit.position = point_local
+        hit.normal = normal_local
+        hit.t = t
         hit.mat = sphere.material
 
     return changeIntersectFrame(hit, sphere.M, sphere.M_inv)

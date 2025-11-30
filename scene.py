@@ -98,49 +98,51 @@ class Scene:
         ti.loop_config(serialize=True) 
         for l in range(self.nb_lights):
 
-            # TODO: Objective 3: Implement diffuse and specular shading
             light = self.lights[l]
         
-            light_dir = tm.vec3(0,0,0)
+            light_dir = tm.vec3(0, 0, 0)
             attenuation = 0.0
+            distance_to_light = 0.0
 
             if light.ltype == 0:
-                #directional light: vector is already normalized direction toward light
+                # Directional light: vector is already normalized direction toward light
                 light_dir = light.vector
                 attenuation = 1.0
+                distance_to_light = float('inf')
             else:
-                #point light: vector is position, compute direction
+                # Point light: vector is position, compute direction
                 light_vector = light.vector - intersect.position
-                distance = tm.length(light_vector)
+                distance_to_light = tm.length(light_vector)
                 light_dir = light_vector.normalized()
                 
-                #quadratic attenuation: 1 / (kc + kl*d + kq*d^2)
                 kq = light.attenuation.x
                 kl = light.attenuation.y
                 kc = light.attenuation.z
-                attenuation = 1.0 / (kc + kl * distance + kq * distance * distance)
+                attenuation = 1.0 / (kc + kl * distance_to_light + kq * distance_to_light * distance_to_light)
             
             normal = intersect.normal.normalized()
-            
             view_dir = (-ray.direction).normalized()
             
-            #diffuse
-            #L_d = k_d * I * max(0, n · l)
             diffuse_factor = tm.max(0.0, normal.dot(light_dir))
             diffuse = intersect.mat.diffuse * light.colour * diffuse_factor * attenuation
-            sample_colour += diffuse
             
-            #specular
+            specular = tm.vec3(0, 0, 0)
             if tm.length(intersect.mat.specular) > 0.0:
                 half_vector = (view_dir + light_dir).normalized()
-                
-                #specular factor: max(0, n · h)^p
                 spec_factor = tm.max(0.0, normal.dot(half_vector))
                 spec_factor = tm.pow(spec_factor, intersect.mat.shininess.x)
-                
-                # L_s = k_s * I * max(0, n · h)^p
                 specular = intersect.mat.specular * light.colour * spec_factor * attenuation
-                sample_colour += specular
+            
             # TODO: Objective 6: Implement shadow rays
+            
+            #check for shadows if the surface is facing the light
+            if diffuse_factor > 0.0:
+                #create shadow ray from surface point toward light
+                shadow_ray = Ray(intersect.position, light_dir)
+                
+                shadow_hit = self.intersect_scene(shadow_ray, shadow_epsilon, distance_to_light)
+                
+                if not shadow_hit.is_hit:
+                    sample_colour += diffuse + specular
 
         return sample_colour
